@@ -1,0 +1,25 @@
+<br/>
+<p class="form-horizontal">Изберете името на потребителя, чиито ранг желаете да промените:</p>
+<form class="form-horizontal" method="POST" action="/admin/users/list">
+	<div class="form-group">
+		<label for="" class="col-lg-2 control-label">Потребителско име</label>
+		<div class="col-lg-4" style="margin-top: 10px">
+			<select class="table" id="username" name="username">
+				[% FOREACH user IN users %]
+				[% PROCESS user.tt %]
+				[% END %]
+			</select>
+		</div>
+	</div>
+	<div class="form-group" style="margin-top: -15px">
+		<label for="" class="col-lg-2 control-label">Ранг</label>
+		<div class="col-lg-4">
+			<select class="table" id="rank" name="rank" style="margin-top: 9px; margin-bottom: 30px;">
+				<option value="1">1 (Администратор)</option>
+				<option value="2" selected="selected">2 (Клиент)</option>
+			</select>
+  			<br/>
+			<button type="submit" class="btn btn-default">Промени</button>
+		</div>
+	</div>
+</form>

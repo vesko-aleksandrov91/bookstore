@@ -1,0 +1,233 @@
+package bookshop;
+
+use Dancer ':syntax';
+use DBI;
+use Data::Dumper;
+use Digest::SHA qw(sha1_hex);
+use LWP::UserAgent;
+
+our $VERSION = '0.1';
+
+get '/' => sub {
+
+	debug Dumper(session);
+
+	if (session->{'LOGGED_IN'} and session->{'ROLE'} == 1) {
+		return redirect '/admin';
+	}
+
+	template 'index';
+};
+
+get '/login' => sub {
+	template 'login';
+};
+
+get '/logout' => sub {
+	session->destroy;
+	
+	return redirect '/';
+};
+
+post '/login' => sub {
+	my %params = params;
+
+	my $dbh = db_connect();
+
+	my $user = $params{'login_name'};
+	my $pass = $params{'login_pass'};
+
+	debug Dumper(\%params);
+
+	my $sth = $dbh->prepare('SELECT REAL_NAME,ROLE_ID FROM USERS WHERE LOGIN_NAME = ? AND LOGIN_PASS = ?');
+	$sth->execute($user, sha1_hex($pass));
+
+	my ($real_name, $role); 
+	while(my $hr = $sth->fetchrow_hashref) {
+		$real_name = $hr->{'REAL_NAME'};
+		$role      = $hr->{'ROLE_ID'};
+		last;
+	}
+
+	# admin or customer
+	if ($role == 1) {
+		session 'REAL_NAME' => $real_name;
+		session 'ROLE'	=> $role;
+		session 'LOGGED_ID' => 1;
+		return redirect '/admin';
+	}
+#	else {
+#		session 'REAL_NAME' => $real_name;
+#		session 'ROLE'	=> $role;
+#		session 'LOGGED_ID' => 1;
+#		return redirect '/customer';
+#	}
+
+};
+
+get '/admin' => sub {
+	# not admin
+	if (session->{'ROLE'} != 1) {
+		return redirect '/';
+	}
+
+	template 'admin' => {
+		REAL_NAME => session->{'REAL_NAME'},
+	};
+};
+
+get '/admin/author/add' => sub {
+	template 'author_add';
+};
+
+post '/admin/author/add' => sub {
+	my %params = params;
+	my $author_name = $params{'author_name'};
+
+	debug Dumper(\%params);
+	
+	my $dbh = db_connect();
+	my $sth = $dbh->prepare('INSERT INTO AUTHORS (NAME) VALUES (?)') or die "Couldn't execute quiery: " . DBI->errstr;
+	$sth->execute($author_name);
+	$sth->finish;
+
+	return redirect '/admin';
+};
+
+get '/admin/book/add' => sub {
+	template 'book_add';
+};
+
+post '/admin/book/add' => sub {
+    my %params 	= params;
+
+    my $title 	= $params{'book_title'};
+    my $price		= $params{'book_price'};
+    my $quantity	= $params{'book_quantity'};
+
+    my $image  = upload('book_cover');
+    my $path = '/home/vesko/books/public/book_covers/';
+    my $basename = $image->basename;
+    my $ext;
+    if ($basename =~ m/.*\.([^.]*)$/) {
+        $ext = $1;
+    }
+    my $image_filename = sha1_hex(time . $basename . rand(1000)) . ".$ext";
+    $image->copy_to($path . $image_filename);
+
+    my $dbh = db_connect();
+    my $sth = $dbh->prepare('INSERT INTO BOOKS (TITLE, PRICE, QUANTITY, IMAGE_PATH) VALUES (?,?,?,?)');
+    $sth->execute($title, $price, $quantity, $image_filename);
+#    my $book_id = $dbh->sqlite_last_insert_rowid();
+
+    redirect '/admin';
+};
+
+get '/admin/authors/list' => sub
+{
+	my $dbh = db_connect();
+       
+        my $sth = $dbh->prepare('SELECT * FROM AUTHORS ORDER BY ID');
+        $sth->execute();
+       
+        my %Info;
+	while(my $hr = $sth->fetchrow_hashref) {
+                $Info{$hr->{'ID'}} = $hr->{'NAME'};                            
+        }
+
+        $sth->finish;
+	template 'authors_list' => {
+		'Info' => \%Info,
+	};
+};
+
+# Register a new user
+get '/register' => sub {
+	template '/register';
+};
+
+# Register a new user
+post '/register' => sub {
+	my %params 	= params;
+	my $username 	= $params{'username'};
+	my $password 	= $params{'pass'};
+	my $real_name	= $params{'real_name'};
+	my $phone 	= $params{'phone'};
+
+	my $sha1_pass	= sha1_hex($password);
+	my $dbh = db_connect();
+	my $sth = $dbh->prepare('INSERT INTO USERS(LOGIN_NAME, LOGIN_PASS, REAL_NAME, PHONE, ROLE_ID) VALUES (?,?,?,?,?)');
+	$sth->execute($username, $sha1_pass, $real_name, $phone, 2);
+	$sth->finish;
+	
+	redirect '/';
+};
+
+get '/admin/users/list' => sub {
+	my $dbh = db_connect();
+       
+        my $sth = $dbh->prepare('SELECT LOGIN_NAME FROM USERS ORDER BY ID');
+        $sth->execute();
+       
+        my @users;
+	while(my $hr = $sth->fetchrow) {
+		push(@users, $hr);                      
+        }
+
+        $sth->finish;
+	template 'users_list' => {
+		'users' => \@users,
+	};
+};
+
+post '/admin/users/list' => sub {
+	my %params	= params;
+	my $username	= $params{'username'};
+	my $role	= $params{'rank'};
+	
+	my $dbh = db_connect();
+	my $sth = $dbh->prepare('UPDATE USERS SET ROLE_ID=? WHERE LOGIN_NAME=?');
+	$sth->execute($role, $username);
+	$sth->finish;
+
+	redirect '/admin';
+};
+
+get '/admin/books/list' => sub
+{
+        my $dbh = db_connect();
+ 
+        my $sth = $dbh->prepare('SELECT * FROM BOOKS');
+        $sth->execute();
+ 
+        my $path= '/images/';
+        my %Books;
+        my @Data;
+        my $counter = 0;
+        while(my $hr = $sth->fetchrow_hashref) {               
+                $Data[$counter] = [($hr->{'TITLE'}), ($hr->{'PRICE'}), ($hr->{'QUANTITY'})];
+                my $currentPath = $path.($hr->{'IMAGE_PATH'});         
+                $Books{$currentPath} = $Data[$counter];
+                $counter++;            
+        }
+ 
+        template 'books_list' => {
+                'Books' => \%Books,
+        };     
+};
+
+sub db_connect {
+
+	my $db_connection_str = setting('DB_CONN_STR');
+	my $dbh = DBI->connect($db_connection_str) or die "error: [$DBI::errstr] [$!]";
+
+	return $dbh;
+}
+
+sub db_disconnect {
+	my $dbh = shift;
+
+	$dbh->disconnect();
+}
+
+start;

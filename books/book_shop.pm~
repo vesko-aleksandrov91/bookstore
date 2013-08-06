@@ -1,0 +1,6 @@
+use Dancer;
+use DBI;
+
+GET '/' => sub {
+	return 'index';
+};

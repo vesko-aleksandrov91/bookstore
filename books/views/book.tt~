@@ -1,0 +1,12 @@
+<td>
+	[% book[0] %]
+</td>
+<td>
+	[% book[1] %]
+</td>
+<td>
+	[% book[2] %]
+</td>
+<td>
+	[% book[3] %]
+</td>

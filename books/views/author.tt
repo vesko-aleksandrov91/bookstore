@@ -1,0 +1,4 @@
+<tr>
+	<td>[% author.key %].</td>
+	<td>[% author.value %]</td>
+</tr>

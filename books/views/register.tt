@@ -1,0 +1,35 @@
+<br/>
+<form class="form-horizontal" method="POST" action="/register">
+	<div class="form-group">
+    		<label for="username" class="col-lg-2 control-label">Потребителско име</label>
+    		<div class="col-lg-4">
+      			<input type="text" name="username" class="form-control" id="username" placeholder="Потребителско име" />
+    		</div>
+  	</div>
+		<div class="form-group">
+		<label for="pass" class="col-lg-2 control-label">Парола</label>
+		<div class="col-lg-4">
+			<input type="password" name="pass" class="form-control" id="pass" placeholder="Парола">
+		</div>
+	</div>
+	<div class="form-group">
+		<label for="retype_pass" class="col-lg-2 control-label">Повтори парола</label>
+		<div class="col-lg-4">
+			<input type="password" name="retype_pass" class="form-control" id="retype_pass" placeholder="Повтори парола">
+		</div>
+	</div>
+	<div class="form-group">
+		<label for="real_name" class="col-lg-2 control-label">Име</label>
+		<div class="col-lg-4">
+			<input type="text" name="real_name" class="form-control" id="real_name" placeholder="Име">
+		</div>
+	</div>
+	<div class="form-group">
+		<label for="phone" class="col-lg-2 control-label">Телефон</label>
+		<div class="col-lg-4">
+			<input type="text" name="phone" class="form-control" id="phone" placeholder="Телефон">
+	 		<br/>
+      			<button type="submit" class="btn btn-default">Регистрация</button>
+		</div>
+	</div>
+</form>

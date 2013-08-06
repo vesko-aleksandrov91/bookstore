@@ -1,0 +1,18 @@
+<tr>
+<div class="col-lg-4">
+<td>
+ 
+<img src=[% book.key %] width="150" />
+ 
+ 
+</td>
+ 
+[% FOREACH item IN book.value %]
+ 
+<td class="form-control" style="width:200px;">
+[% item %]
+</td>
+[% END %]
+ 
+</div>
+</tr>
